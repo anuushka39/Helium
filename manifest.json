@@ -1,5 +1,18 @@
 {
     "name": "Edgestra",
     "version": "0.0.1",
-    "manifest_version":2
+    "manifest_version":3,
+    "action":{
+        "default_popup":"extension/popup.html",
+        "default_icon":"extension/logo.png" 
+    },
+    "icons":{
+        "128":"extension/logo.png"
+    },
+
+    "host_permissions": [
+        "http://127.0.0.1:8000/*"
+    ],
+    "permissions":["activeTab", "scripting"]
+
 }
