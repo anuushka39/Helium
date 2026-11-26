@@ -11,7 +11,7 @@
 
 <body>
     <div class="top-bar">
-    <h3>Helium</h3>
+    <h3 id="hero">Helium</h3>
 
     <div class="menu-container">
         <button id="menuBtn" class="menu-btn">
@@ -20,12 +20,13 @@
 
         <div id="menuDropdown" class="menu-dropdown">
             <button id="newChat">New Chat</button>
+            <button id="deleteChat">Delete Chat History</button>
             <button id="changeKey">Change API Key</button>
         </div>
     </div>
 </div>
 
-    <hr>
+    <hr id="violet-rush">
 
     <!-- STEP 1: Welcome and page access -->
     <div id="onboarding" class="screen">
@@ -69,9 +70,20 @@
                 <img src="arrow.png" alt="Send">
             </button>
         </div>
+        <div id="deleteConfirm" class="delete-confirm" style="display:none;">
+    <div class="delete-box">
+        <h3>Delete chat history?</h3>
+        <p>This will permanently delete the conversation for this webpage.</p>
+
+        <div class="delete-actions">
+            <button id="cancelDelete">Cancel</button>
+            <button id="confirmDelete">Delete</button>
+        </div>
+    </div>
+</div>
     </div>
     
-
+    <script src="marked.min.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

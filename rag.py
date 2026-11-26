@@ -61,6 +61,9 @@ Say "I don't know" only if the context has nothing relevant.
 Context:
 {context}
 
+Conversation so far (only to understand follow-up questions; the facts must come from the context):
+{history}
+
 Question:
 {question}"""
 )
@@ -76,8 +79,10 @@ def build_llm(api_key=None):
         max_retries=1,   # our own retry loop in ask() handles the rest
     )
 
-def ask(question, retriever, llm):
-    docs = retriever.invoke(question)
+def ask(question, retriever, llm, history="(none)", search_query=None):
+    # Retrieval uses the standalone version of the question (if there is one);
+    # the prompt below still gets the original question and the chat history.
+    docs = retriever.invoke(search_query or question)
     print("\n--- RETRIEVED CONTEXT ---")
     for i, doc in enumerate(docs, 1):
         preview = doc.page_content[:200].replace("\n", " ")
@@ -90,7 +95,7 @@ def ask(question, retriever, llm):
     response = None
     for attempt in range(1, 4):  # Google sometimes returns 503 when busy: wait and retry
         try:
-            response = (PROMPT | llm).invoke({"context": context, "question": question})
+            response = (PROMPT | llm).invoke({"context": context, "question": question, "history": history})
             break
         except Exception as e:
             print(f"Attempt {attempt} failed: {type(e).__name__}: {str(e)[:150]}")
@@ -111,10 +116,97 @@ def ask(question, retriever, llm):
     print("\n--- ANSWER ---")
     return response.text
 
+def extract_answer(response):
+    content = response.content
+
+    if isinstance(content, list):
+        return "\n".join(
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict)
+        )
+    return content
+
+def rewrite_question(question, history, llm):
+    """Turn a follow-up like "why?" into a standalone question, so retrieval finds the right chunks."""
+    if history == "(none)":  # first question in this chat: nothing to rewrite
+        return question
+    prompt = f"""Rewrite the user's last question as ONE standalone question that makes sense
+without the conversation. Replace words like "it", "that", "the second one" with what they refer to.
+If it is already standalone, return it unchanged. Return only the question, nothing else.
+
+Conversation so far:
+{history}
+
+Last question: {question}"""
+    try:
+        rewritten = extract_answer(llm.invoke(prompt)).strip()
+    except Exception as e:  # if the rewrite fails, just search with the original question
+        print("Rewrite failed, using original question:", e)
+        return question
+    print("Search query:", rewritten or question)
+    return rewritten or question
+
+def final_answer(question, context, rag_answer, llm, history="(none)"):
+    evaluation_prompt = f"""
+    Evaluate whether the given answer sufficiently answers the user's question.
+    Conversation so far:
+    {history}
+    User Question: {question}
+    Retrieved Context: {context}
+    RAG Answer: {rag_answer}
+    If the answer is relevant, complete, and adequately supported by
+    the retrieved context, return exactly: SUFFICIENT
+    IMPORTANT:
+    If the RAG answer says that the context does not contain enough
+    information, says "I don't know", or fails to provide the actual
+    information requested, classify it as INSUFFICIENT.
+
+    An answer explaining that information is missing is NOT a
+    sufficient answer.
+
+    Evaluate whether the user's actual question has been answered,
+    not whether the RAG answer correctly describes the retrieved context.
+    """
+    response = llm.invoke(evaluation_prompt)
+    evaluation = response.content
+
+    if isinstance(evaluation, list):
+        evaluation = " ".join(
+            item["text"] if isinstance(item, dict) else str(item)
+            for item in evaluation
+        )
+
+    evaluation = evaluation.strip()
+    if evaluation.upper() == "SUFFICIENT":
+        return rag_answer
+    general_prompt = f"""
+    Answer the following question accurately and comprehensively
+    using your own knowledge.
+    Conversation so far (use it to understand follow-up questions):
+    {history}
+    User Question: {question}
+    The webpage context was insufficient, so you may use your
+    general knowledge. Do not invent facts.
+    """
+    response = llm.invoke(general_prompt)
+    return extract_answer(response)
+
 #just rag things
-def answer_from_page(url, question, api_key):
-    docs = load_pages([url])
+def answer_from_page(url, question, api_key, history="(none)", page_content=""):
+    if page_content.strip():
+        docs = [
+            Document(
+                page_content=page_content,
+                metadata={"source": url}
+            )
+        ]
+    else:
+        docs = load_pages([url])
     chunks = split_pages(docs)
     retriever = build_retriever(chunks, api_key)
     llm = build_llm(api_key)
-    return ask(question, retriever, llm)
+    search_query = rewrite_question(question, history, llm)
+    rag_answer = ask(question, retriever, llm, history, search_query)
+    context = "\n\n".join(doc.page_content for doc in chunks)
+    return final_answer(question, context, rag_answer, llm, history)

@@ -1,0 +1,9 @@
+#For tetsing 
+
+GEMINI_API_KEY=your_existing_key
+
+REDIS_HOST=your-redis-endpoint
+REDIS_PORT=your-redis-port
+REDIS_USERNAME=default
+REDIS_PASSWORD=your-redis-password
+REDIS_SSL=false
