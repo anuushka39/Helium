@@ -1,21 +1,76 @@
+
 <!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="style.css">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
-    <h3>Edgestra</h3>
+    <div class="top-bar">
+    <h3>Helium</h3>
+
+    <div class="menu-container">
+        <button id="menuBtn" class="menu-btn">
+            <img src="menu.png" alt="menu">
+        </button>
+
+        <div id="menuDropdown" class="menu-dropdown">
+            <button id="newChat">New Chat</button>
+            <button id="changeKey">Change API Key</button>
+        </div>
+    </div>
+</div>
+
     <hr>
 
-    <div id="messages"></div>
+    <!-- STEP 1: Welcome and page access -->
+    <div id="onboarding" class="screen">
+        <p>
+            Welcome to Helium,<br>
+            I'm your AI web companion. I can read the webpage
+            you're viewing and answer questions about it.
+        </p>
 
-    <div class="input">
-        <input id="question" placeholder="Ask about this page">
-        <button id="askBtn"><img src="arrow.png" alt="Send"></button>
+        <button id="grantAccess">Continue</button>
+        <p id="status"></p>
     </div>
+
+    <!-- STEP 2: Gemini API setup -->
+    <div id="apiSetup" class="screen" style="display:none;">
+        <h2 style="font-weight:300; font-size:17px;">Connect Gemini</h2>
+
+        <p>Enter your Gemini API key to get started.</p>
+
+        <a style="color:white;"
+           href="https://aistudio.google.com/apikey"
+           target="_blank">
+            Get your API key
+        </a>
+
+        <input type="password" id="apiKey"
+               placeholder="Paste your API key">
+
+        <button id="saveKey">Save and continue</button>
+        <p id="apiStatus"></p>
+    </div>
+
+    <!-- STEP 3: Chat interface -->
+    <div id="chatScreen" class="screen" style="display:none;">
+        
+        <div id="messages"></div>
+
+        <div class="input">
+            <input id="question" placeholder="Ask about this page">
+            <button id="askBtn">
+                <img src="arrow.png" alt="Send">
+            </button>
+        </div>
+    </div>
+    
 
     <script src="popup.js"></script>
 </body>

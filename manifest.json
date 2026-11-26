@@ -1,6 +1,6 @@
 {
-    "name": "Edgestra",
-    "version": "0.0.1",
+    "name": "Helium",
+    "version": "1.0",
     "manifest_version":3,
     "action":{
         "default_popup":"extension/popup.html",
@@ -13,6 +13,6 @@
     "host_permissions": [
         "http://127.0.0.1:8000/*"
     ],
-    "permissions":["activeTab", "scripting"]
+    "permissions":["activeTab", "scripting", "storage"]
 
 }

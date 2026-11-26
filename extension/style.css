@@ -8,21 +8,51 @@ body {
     width: 350px;
     min-height: 8px;
     max-height: 550px;
-    margin: 0 20px 0 20px;
+    margin :0;
+    /* margin: 0 20px 0 20px; */
     padding: 16px;
     box-sizing: border-box;
-    background: #171717;
-    color: white;
+    background: #101014;
+    color: #EAE7ED;
     font-family: "Poppins", sans-serif ;
     font-weight: 300;
     font-style: normal;
 }
+
 hr {
     border: none;
-    border-top: 1px solid #797b63;
+        height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        #7545C8,
+        #C5A3FF,
+        #7545C8,
+        transparent
+    );
+    background-size: 200% 100%;
+    animation: purpleGlow 3s linear infinite;
+    box-shadow: 0 0 7px rgba(150, 90, 255, 0.5);
     /* margin: 12px 0; */
     margin-top: 0;
 }
+
+@keyframes purpleGlow {
+    0% {
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: -100% 0;
+    }
+}
+/* .app {
+    background: #141419;
+    border: 1px solid #292832;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+} */
+
 #askBtn img {
     width: 30px;
     height: 30px;
@@ -30,8 +60,22 @@ hr {
 }
 h3 {
     margin: 0 0 20px;
-    font-size: 20px;
-    font-weight: 300;
+    text-align: center;
+    color: #FF9B65;
+    font-size: 25px;
+    font-weight: 270;
+    letter-spacing: 5px;
+    margin: 0 auto 15px;
+    text-shadow:
+        0 0 6px #FF9B65,
+        0 0 16px rgba(255, 125, 70, 0.8),
+        0 0 32px rgba(255, 95, 40, 0.45);
+    /* text-shadow:
+        0 0 5px #FF9B65,
+        0 0 12px rgba(255, 125, 70, 0.9),
+        0 0 25px rgba(255, 95, 40, 0.7),
+        0 0 45px rgba(255, 80, 30, 0.4); */
+    
     margin-bottom: 4px;
 }
 
@@ -51,24 +95,56 @@ h3 {
 }
 
 .question {
-    text-align: right;
-    color: white;
     margin-bottom: 8px;
-    margin-left: 35px;
-}
+    /* margin-left: 35px; */
 
+    display: block;
+    width: fit-content;
+    max-width: 80%;
+    
+    background: #1C1B22;
+    color: #F5F3F7;
+    padding: 10px 14px;
+    border-radius: 80px;
+    border: 1px solid #292832;
+    font-size: 13px;
+    margin-left: auto;
+    margin-right: 0;
+    text-align: right;
+
+    animation: appear 0.25s ease;
+}
+@keyframes appear {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 .answer {
     color: #aaa;
     white-space: pre-wrap;
     margin-right: 35px;
+
+    line-height: 1.6;
+    letter-spacing: 0.1px;
 }
 
 .input {
+    margin-top: 15px;
+    background: #1C1B22;
+    color: #F5F3F7;
+    border: 1px solid #383541;
     display: flex;
     align-items: center;
     /* margin-top: 15px; */
+    outline: none;
+    transition: 0.3s ease;
     padding-top: 10px;
-    border: 1px solid #ffffff;
+    /* border: 1px solid #ffffff; */
     border-radius: 80px;
     padding: 4px 10px;
     width: 100%;
@@ -88,16 +164,101 @@ input {
     font-family: "Poppins", sans-serif ;
     padding: 10px 8px;
     /* width: 200%; */
+    
+}
+.input:focus-within {
+    border-color: #C47A58;
+    box-shadow: 0 0 px rgba(255, 155, 101, 0.18);
+}
+/* .input input {
+    background: #1C1B22;
+    color: #F5F3F7;
+    border: 1px solid #383541;
+    border-radius: 80px;
+    padding: 10px 8px;
+    outline: none;
+    transition: 0.3s ease;
 }
 
-/* input:focus {
-    border-color: #999;
+.input input:focus {
+    border-color: #C47A58;
+    box-shadow: 0 0 px rgba(255, 155, 101, 0.18);
 } */
-
 #askBtn {
     background: transparent;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
+    transition: 0.2s ease;
+}
+
+#askBtn:hover {
+    transform: scale(1.08);
+    opacity: 0.85;
+}
+.chat-header {
+    display: flex;
+    justify-content: flex-end;
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.top-bar h3 {
+    margin: 0;
+}
+
+.menu-container {
+    position: relative;
+}
+
+.menu-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 20px;
+    color: white;
+    padding: 2px 5px;
+}
+
+.menu-btn img {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.menu-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 28px;
+    width: 140px;
+    z-index: 10;
+    background: #1C1B22;
+    border: 1px solid #383541;
+    border-radius: 8px;
+    overflow: hidden
+}
+.menu-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: white;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.menu-dropdown button:hover {
+    background: #292832;
 }
