@@ -11,12 +11,14 @@ body {
     margin :0;
     /* margin: 0 20px 0 20px; */
     padding: 16px;
+   
     box-sizing: border-box;
     background: #101014;
     color: #EAE7ED;
     font-family: "Poppins", sans-serif ;
     font-weight: 300;
     font-style: normal;
+    overflow: hidden;
 }
 
 #violet-rush {
@@ -78,11 +80,20 @@ body {
     
     margin-bottom: 4px;
 }
-
+#chatScreen {
+    /* height: 440px; */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
 #messages {
+    flex: 1;
+    min-height: 0;
     max-height: 300px;
     overflow-y: auto;
     scrollbar-width: none;
+    scroll-behavior: auto;
+    padding: 10px 2px;
 }
 #messages::-webkit-scrollbar {
     display: none;
@@ -104,7 +115,8 @@ body {
     
     background: #1C1B22;
     color: #F5F3F7;
-    padding: 10px 14px;
+    /* padding: 10px 14px; */
+    padding: 8px 12px;
     border-radius: 80px;
     border: 1px solid #292832;
     font-size: 13px;
@@ -134,7 +146,8 @@ body {
 } */
 
 .input {
-    margin-top: 15px;
+    flex-shrink: 0;
+    margin-top: 5px;
     background: #1C1B22;
     color: #F5F3F7;
     border: 1px solid #383541;
@@ -143,14 +156,17 @@ body {
     /* margin-top: 15px; */
     outline: none;
     transition: 0.3s ease;
-    padding-top: 10px;
+    /* padding-top: 10px; */
     /* border: 1px solid #ffffff; */
     border-radius: 80px;
-    padding: 4px 10px;
+    padding: 0.5px 10px;
     width: 100%;
     box-sizing: border-box;
 }
-
+#typingIndicator {
+    flex-shrink: 0;
+    margin-bottom: 8px;
+}
 input {
     flex: 1;
     min-width: 0;
@@ -162,7 +178,8 @@ input {
     color: white;
     font-size: 13px;
     font-family: "Poppins", sans-serif ;
-    padding: 10px 8px;
+    /* padding: 10px 8px; */
+    padding: 6px 8px;
     /* width: 200%; */
     
 }
@@ -202,6 +219,7 @@ button {
     display: flex;
     align-items: center;
     transition: 0.2s ease;
+    margin-left: -15px;
 }
 
 #askBtn:hover {
@@ -455,4 +473,37 @@ button:focus-visible {
 #confirmDelete {
     background: #a74765;
     color: white;
+}
+.typing {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 16px;
+}
+
+.typing span {
+    width: 7px;
+    height: 7px;
+    background: #999;
+    border-radius: 50%;
+    animation: typing 1.2s infinite ease-in-out;
+}
+
+.typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-5px);
+        opacity: 1;
+    }
 }

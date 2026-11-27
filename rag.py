@@ -118,7 +118,6 @@ def ask(question, retriever, llm, history="(none)", search_query=None):
 
 def extract_answer(response):
     content = response.content
-
     if isinstance(content, list):
         return "\n".join(
             block.get("text", "")

@@ -1,9 +1,7 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="style.css">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
@@ -14,6 +12,7 @@
     <h3 id="hero">Helium</h3>
 
     <div class="menu-container">
+
         <button id="menuBtn" class="menu-btn">
             <img src="menu.png" alt="menu">
         </button>
@@ -24,28 +23,25 @@
             <button id="changeKey">Change API Key</button>
         </div>
     </div>
-</div>
+    </div>
 
     <hr id="violet-rush">
 
-    <!-- STEP 1: Welcome and page access -->
+    <!-- - 1 Welcome and page access -->
     <div id="onboarding" class="screen">
         <p>
             Welcome to Helium,<br>
             I'm your AI web companion. I can read the webpage
             you're viewing and answer questions about it.
         </p>
-
         <button id="grantAccess">Continue</button>
         <p id="status"></p>
     </div>
 
-    <!-- STEP 2: Gemini API setup -->
+    <!-- 2 Gemini API setup -->
     <div id="apiSetup" class="screen" style="display:none;">
         <h2 style="font-weight:300; font-size:17px;">Connect Gemini</h2>
-
         <p>Enter your Gemini API key to get started.</p>
-
         <a style="color:white;"
            href="https://aistudio.google.com/apikey"
            target="_blank">
@@ -54,16 +50,19 @@
 
         <input type="password" id="apiKey"
                placeholder="Paste your API key">
-
         <button id="saveKey">Save and continue</button>
         <p id="apiStatus"></p>
     </div>
 
-    <!-- STEP 3: Chat interface -->
+    <!-- 3 Chat interface -->    
     <div id="chatScreen" class="screen" style="display:none;">
-        
-        <div id="messages"></div>
-
+       <div id="messages"></div>
+        <div id="typingIndicator" class="message bot-message typing" style="display:none;">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    
         <div class="input">
             <input id="question" placeholder="Ask about this page">
             <button id="askBtn">
@@ -71,18 +70,18 @@
             </button>
         </div>
         <div id="deleteConfirm" class="delete-confirm" style="display:none;">
-    <div class="delete-box">
-        <h3>Delete chat history?</h3>
-        <p>This will permanently delete the conversation for this webpage.</p>
+            <div class="delete-box">
+                <h3>Delete chat history?</h3>
+                <p>This will permanently delete the conversation for this webpage.</p>
 
-        <div class="delete-actions">
-            <button id="cancelDelete">Cancel</button>
-            <button id="confirmDelete">Delete</button>
-        </div>
-    </div>
-</div>
-    </div>
-    
+                <div class="delete-actions">
+                    <button id="cancelDelete">Cancel</button>
+                    <button id="confirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>   
+    </div>  
+
     <script src="marked.min.js"></script>
     <script src="popup.js"></script>
 </body>

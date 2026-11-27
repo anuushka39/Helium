@@ -1,0 +1,442 @@
+Routers: Handle incoming HTTP requests.
+Services: Contain application logic.
+Core: Contains configuration and security utilities.
+Database: Handles database connections.
+Models: Define request and response structures.
+
+understanding app in 1 flow-
+FOR UNDERSTANDING PURPUSES ONLY, AVOID DOMESTIC USAGE :)
+
+Keep these responsibilities separate:
+- UI: What happens when the user clicks something?
+- Browser logic: How do we interact with Chrome and extract webpage content?
+- API layer: How do we communicate with FastAPI?
+- Backend: How do we process the question and generate an answer?
+This separation makes debugging, testing and extending Helium much easie
+
+------ARCHITECTURE-------
+                        -----------
+                        |main.py  |   --> Creates FastAPI app and registers routers
+            |-----------------------------------
+            |    chat.py     |      auth.py    |
+            | /ask, /history |    /verify-key  |
+            |----------------|-----------------|
+            |             serices.py           |
+            |chat_service , error_handler, rag|
+            |----------------------------------| 
+            |redis.py   -----|    security.py  |
+            |----------------|-----------------|
+
+ques) What happens when you send a question?
+ans ) Let's follow an actual request.
+
+Suppose your extension sends:
+POST /ask
+
+Step 1 — Request enters main.py
+FastAPI receives the request. But main.py doesn't process it itself.
+It has already registered the chat router:
+app.include_router(chat.router)
+FastAPI knows that /ask belongs to chat.py.
+
+Step 2 — chat.py handles the request
+@router.post("/ask")def ask_question(data: QuestionRequest):
+FastAPI validates the incoming JSON using QuestionRequest.
+Then this function executes.
+
+Step 3 — Chat service gets previous history
+messages = get_chat_history(data.url)
+This function lives in chat_service.py.
+Internally, it:
+- Generates the Redis key.
+- Fetches messages from Redis.
+- Uses security.py to decrypt them.
+
+Step 4 — RAG processes the question
+answer = answer_from_page(...)
+This calls your existing rag.py, which retrieves relevant context and generates an answer using Gemini.
+
+Step 5 — Save the conversation
+save_chat_history(data.url, data.question, answer)
+Again, chat_service.py handles this.
+It uses security.py to encrypt messages and redis_client.py to save them.
+
+Step 6 — Return the response
+return {"answer": answer}
+
+FastAPI sends the response back to your Chrome extension.
+
+3. But how does Python know where everything is?
+Through imports.
+For example, in chat.py:
+from app.services.chat_service import get_chat_history
+This tells Python:
+"Go to the app package, enter services, open chat_service.py, and import this function."
+
+Similarly:
+from app.core.security import encrypt_message
+Python imports the encryption function from security.py.
+
+These modules aren't independently running servers. They're ordinary Python files connected through imports.
+
+4. Why do we have two routers?
+Because they handle different groups of endpoints.
+Router	Responsibility
+chat.py	Questions and conversation history
+auth.py	Gemini API key verification
+
+Both are registered with the same FastAPI application.
+
+And importantly, routers don't do everything. They coordinate the request and call services that contain the actual operations.
+Remember this distinction
+- main.py = Application entry point.
+- routers = Receive and direct HTTP requests.
+- services = Execute application logic.
+- core = Shared configuration and security.
+- database = Database connection.
+- models = Define the structure of incoming data.
+That's the basic idea of modular backend architecture.
+
+Think of main.py as the receptionist: it connects the incoming requests to the correct department. It doesn't personally perform every task. 😄
+
+
+ 
+q2)  Ahh, the key thing is: Python doesn't decide which router to use based on what you click. FastAPI matches the incoming HTTP request to a registered route.
+Let's trace it.
+1. How does FastAPI know which router to call?
+
+In main.py, we write:
+app.include_router(auth.router)
+app.include_router(chat.router)
+This registers all the routes defined inside those routers with the same FastAPI app.
+
+For example:
+
+auth.py
+router = APIRouter()@router.post("/verify-key")def verify_key(data: VerifyKeyRequest):    ...
+
+chat.py
+router = APIRouter()@router.post("/ask")def ask_question(data: QuestionRequest):    ...
+
+FastAPI now knows these routes:
+HTTP -------method	--------URL	Function
+POST -------	/verify-key-------	verify_key()
+POST-------	/ask	-------ask_question()
+
+---------
+Chrome Extension
+User enters a question and clicks Send
+---|------------------
+   V
+POST /ask
+-----------------
+FastAPI application
+Matches the URL /ask
+------------|
+chat.router V
+Calls ask_question()
+-------------------
+Services + RAG
+Fetch history → Generate answer → Save history
+  |
+  V
+JSON response returned to extension
+
+include_router() → registers endpoints.
+@router.post() → defines which URL calls which function.
+fetch() → sends a request to a particular URL.
+Depends() / middleware → enforces authentication.
+
+Here's what happens:
+1. Python imports auth and chat in main.py.
+2. include_router() registers their endpoints with the FastAPI app.
+3. The app starts and waits for HTTP requests.
+4. When a request arrives, FastAPI checks its HTTP method + URL path.
+5. It matches the route and executes the associated function.
+For example:
+- POST /verify-key → verify_key()
+- POST /ask → ask_question()
+- GET /history → get_history()
+One small correction: it doesn't match based on the question's content. It matches based on the endpoint URL and HTTP method.
+Think of it like a receptionist who already has everyone's department and extension number. When a request arrives, it knows exactly where to send it. 😄
+
+----------------
+import os
+import json
+import hashlib
+import redis
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from google import genai
+from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
+from cryptography.fernet import Fernet, InvalidToken
+from rag import answer_from_page
+
+load_dotenv()
+
+app = FastAPI(title="Helium API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+---------- Encryption ----------
+encryption_key = os.getenv("CHAT_ENCRYPTION_KEY")
+
+if not encryption_key:
+    raise ValueError("CHAT_ENCRYPTION_KEY is missing from .env")
+
+fernet = Fernet(encryption_key.encode())
+
+
+def encrypt_message(message):
+    message_json = json.dumps(message)
+    encrypted = fernet.encrypt(message_json.encode())
+    return encrypted.decode()
+
+
+def decrypt_message(encrypted_message):
+    decrypted = fernet.decrypt(encrypted_message.encode())
+    return json.loads(decrypted.decode())
+
+
+---------- Redis chat storage ----------
+redis_client = redis.Redis(
+    host=os.getenv("REDIS_HOST"),
+    port=int(os.getenv("REDIS_PORT")),
+    username=os.getenv("REDIS_USERNAME"),
+    password=os.getenv("REDIS_PASSWORD"),
+    ssl=os.getenv("REDIS_SSL", "false").lower() == "true",
+    decode_responses=True
+)
+
+MAX_HISTORY_MESSAGES = 10
+CHAT_TTL_SECONDS = 30 * 24 * 3600
+
+
+def chat_key(url):
+    page = url.split("#")[0]
+    conversation_id = hashlib.sha256(page.encode()).hexdigest()[:16]
+    return f"helium:chat:{conversation_id}"
+
+
+def format_history(messages):
+    if not messages:
+        return "(none)"
+
+    lines = []
+
+    for m in messages:
+        who = "User" if m["role"] == "user" else "Assistant"
+        lines.append(f"{who}: {m['content']}")
+
+    return "\n".join(lines)
+
+
+class QuestionRequest(BaseModel):
+    question: str
+    url: str
+    api_key: str
+    page_content: str = ""
+
+
+@app.get("/")
+def home():
+    return {"message": "Helium API is running!"}
+
+
+---------- Error handling ----------
+def handle_rag_error(error):
+
+    # Redis is not running
+    if isinstance(error, redis.ConnectionError):
+        raise HTTPException(
+            status_code=503,
+            detail="Chat storage (Redis) is not running. Please start Redis and try again."
+        )
+
+    error_msg = str(error).upper()
+
+    # Invalid API key
+    if "API_KEY_INVALID" in error_msg or "API KEY NOT VALID" in error_msg:
+        raise HTTPException(
+            status_code=401,
+            detail="Your Gemini API key is invalid. Please go to the menu and change your API key."
+        )
+
+    # Quota or rate limit
+    elif "RESOURCE_EXHAUSTED" in error_msg or "QUOTA" in error_msg or "429" in error_msg:
+        raise HTTPException(
+            status_code=429,
+            detail="Gemini usage limit reached. Please try again later or change your API key from the menu."
+        )
+
+    # API access or permission issue
+    elif "PERMISSION_DENIED" in error_msg or "403" in error_msg:
+        raise HTTPException(
+            status_code=403,
+            detail="Your API key does not have permission to access this Gemini service. Check your API access or change your key."
+        )
+
+    # Gemini temporarily unavailable
+    elif "UNAVAILABLE" in error_msg or "503" in error_msg or "OVERLOADED" in error_msg:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini is temporarily overloaded. Please try again in a few minutes."
+        )
+
+    # Webpage fetching / SSL issue
+    elif "CERTIFICATE_VERIFY_FAILED" in error_msg or "SSLERROR" in error_msg:
+        raise HTTPException(
+            status_code=502,
+            detail="Helium couldn't securely fetch this webpage. Try another publicly accessible webpage."
+        )
+
+    # Other errors
+    else:
+        raise HTTPException(
+            status_code=500,
+            detail="Something went wrong while processing your question. Please try again."
+        )
+
+
+---------- Ask question ----------
+@app.post("/ask")
+def ask_question(data: QuestionRequest):
+
+    try:
+        key = chat_key(data.url)
+
+        # Read and decrypt previous messages
+        saved = redis_client.lrange(
+            key,
+            -MAX_HISTORY_MESSAGES,
+            -1
+        )
+
+        messages = [
+            decrypt_message(message)
+            for message in saved
+        ]
+
+        history = format_history(messages)
+
+        answer = answer_from_page(
+            url=data.url,
+            question=data.question,
+            api_key=data.api_key,
+            history=history,
+            page_content=data.page_content
+        )
+
+        Encrypt messages before saving in Redis
+        user_message = encrypt_message({
+            "role": "user",
+            "content": data.question
+        })
+
+        assistant_message = encrypt_message({
+            "role": "assistant",
+            "content": answer
+        })
+
+        # Save only after a successful answer
+        redis_client.rpush(
+            key,
+            user_message,
+            assistant_message
+        )
+
+        redis_client.expire(key, CHAT_TTL_SECONDS)
+
+        return {"answer": answer}
+
+    except HTTPException:
+        raise
+
+    except InvalidToken:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to decrypt chat history. Check your encryption key."
+        )
+
+    except Exception as e:
+        print("RAG Error:", str(e))
+        handle_rag_error(e)
+
+
+---------- Get chat history ----------
+@app.get("/history")
+def get_history(url: str):
+
+    try:
+        saved = redis_client.lrange(chat_key(url), 0, -1)
+
+        messages = [
+            decrypt_message(message)
+            for message in saved
+        ]
+
+        return {"messages": messages}
+
+    except redis.ConnectionError:
+        raise HTTPException(
+            status_code=503,
+            detail="Chat storage (Redis) is not running."
+        )
+
+    except InvalidToken:
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to decrypt chat history. Check your encryption key."
+        )
+
+
+---------- Delete chat history ----------
+@app.delete("/history")
+def delete_history(url: str):
+
+    try:
+        redis_client.delete(chat_key(url))
+        return {"deleted": True}
+
+    except redis.ConnectionError:
+        raise HTTPException(
+            status_code=503,
+            detail="Chat storage (Redis) is not running."
+        )
+
+
+---------- Verify Gemini API key ----------
+class VerifyKeyRequest(BaseModel):
+    api_key: str
+
+
+@app.post("/verify-key")
+def verify_key(data: VerifyKeyRequest):
+
+    try:
+        test_client = genai.Client(api_key=data.api_key)
+
+        response = test_client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents="Reply with OK."
+        )
+
+        if not response.text:
+            raise HTTPException(
+                status_code=400,
+                detail="API key verification failed."
+            )
+
+        return {"valid": True}
+
+    except Exception:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key or Gemini access unavailable. Check your key and API access."
+        )
